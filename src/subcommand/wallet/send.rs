@@ -43,7 +43,7 @@ impl Send {
       }
       Outgoing::InscriptionId(id) => index
         .get_inscription_satpoint_by_id(id)?
-        .ok_or_else(|| anyhow!("Shibescription {id} not found"))?,
+        .ok_or_else(|| anyhow!("Inscription {id} not found"))?,
       Outgoing::Amount(amount) => {
         let all_inscription_outputs = inscriptions
           .keys()

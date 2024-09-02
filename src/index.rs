@@ -19,6 +19,7 @@ use {
   redb::{Database, ReadableTable, Table, TableDefinition, WriteStrategy, WriteTransaction},
   std::collections::HashMap,
   std::sync::atomic::{self, AtomicBool},
+  url::Url,
 };
 
 mod entry;
@@ -140,14 +141,28 @@ impl<T> BitcoinCoreRpcResultExt<T> for Result<T, bitcoincore_rpc::Error> {
 impl Index {
   pub(crate) fn open(options: &Options) -> Result<Self> {
     let rpc_url = options.rpc_url();
+    
     let cookie_file = options.cookie_file()?;
 
-    log::info!(
-      "Connecting to Dogecoin Core RPC server at {rpc_url} using credentials from `{}`",
-      cookie_file.display()
-    );
+    // if cookie_file is emtpy / not set try to parse username:password from RPC URL to create the UserPass auth
+    let auth: Auth = if !cookie_file.exists() {
+      let url = Url::parse(&rpc_url)?;
+      let username = url.username().to_string();
+      let password = url.password().map(|x| x.to_string()).unwrap_or_default();
 
-    let auth = Auth::CookieFile(cookie_file);
+      log::info!(
+        "Connecting to Pepecoin Core RPC server at {rpc_url} using credentials from the url"
+      );
+
+      Auth::UserPass(username, password)
+    } else {
+      log::info!(
+        "Connecting to Pepecoin Core RPC server at {rpc_url} using credentials from `{}`",
+        cookie_file.display()
+      );
+
+      Auth::CookieFile(cookie_file)
+    };
 
     let client = Client::new(&rpc_url, auth.clone()).context("failed to connect to RPC URL")?;
 
